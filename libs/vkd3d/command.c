@@ -10116,7 +10116,7 @@ static void d3d12_command_list_copy_image(struct d3d12_command_list *list,
         pipeline_key.sample_count = vk_samples_from_dxgi_sample_desc(&dst_resource->desc.SampleDesc);
         pipeline_key.dst_aspect_mask = region->dstSubresource.aspectMask;
 
-        if (FAILED(hr = vkd3d_meta_get_copy_image_pipeline(&list->device->meta_ops, &pipeline_key, &pipeline_info)))
+        if (FAILED(hr = vkd3d_meta_get_copy_image_pipeline(&list->device->meta_ops, &pipeline_key, &pipeline_info, false)))
         {
             ERR("Failed to obtain pipeline, format %u, view_type %u, sample_count %u.\n",
                     pipeline_key.format->vk_format, pipeline_key.view_type, pipeline_key.sample_count);
@@ -11931,7 +11931,8 @@ static void d3d12_command_list_execute_resolve(struct d3d12_command_list *list,
         resolve_pipeline_key.compute.mode = mode;
         resolve_pipeline_key.compute.srgb = dst_view_desc.format != vk_format;
 
-        if (FAILED(vkd3d_meta_get_resolve_image_pipeline(&list->device->meta_ops, &resolve_pipeline_key, &resolve_pipeline_info)))
+        if (FAILED(vkd3d_meta_get_resolve_image_pipeline(
+            &list->device->meta_ops, &resolve_pipeline_key, &resolve_pipeline_info, false)))
         {
             ERR("Failed to get resolve pipeline.\n");
             return;
@@ -12132,7 +12133,8 @@ cleanup_compute:
                 resolve_pipeline_key.graphics.dst_aspect = (VkImageAspectFlagBits)region->dstSubresource.aspectMask;
                 resolve_pipeline_key.graphics.mode = mode;
 
-                if (FAILED(vkd3d_meta_get_resolve_image_pipeline(&list->device->meta_ops, &resolve_pipeline_key, &resolve_pipeline_info)))
+                if (FAILED(vkd3d_meta_get_resolve_image_pipeline(
+                    &list->device->meta_ops, &resolve_pipeline_key, &resolve_pipeline_info, false)))
                 {
                     ERR("Failed to get resolve pipeline.\n");
                     return;
@@ -15384,7 +15386,7 @@ static void d3d12_command_list_clear_uav(struct d3d12_command_list *list,
 
         pipeline = vkd3d_meta_get_clear_image_uav_pipeline(
                 &list->device->meta_ops, args->u.image.vk_view_type,
-                format->type == VKD3D_FORMAT_TYPE_UINT);
+                format->type == VKD3D_FORMAT_TYPE_UINT, false);
         workgroup_size = vkd3d_meta_get_clear_image_uav_workgroup_size(args->u.image.vk_view_type);
     }
     else
@@ -15414,7 +15416,7 @@ static void d3d12_command_list_clear_uav(struct d3d12_command_list *list,
         layer_count = 1;
         pipeline = vkd3d_meta_get_clear_buffer_uav_pipeline(&list->device->meta_ops,
                 !args->view || format->type == VKD3D_FORMAT_TYPE_UINT,
-                !args->view);
+                !args->view, false);
         workgroup_size = vkd3d_meta_get_clear_buffer_uav_workgroup_size();
     }
 
@@ -15551,7 +15553,7 @@ static void d3d12_command_list_clear_uav_with_copy(struct d3d12_command_list *li
         return;
     }
 
-    pipeline = vkd3d_meta_get_clear_buffer_uav_pipeline(&list->device->meta_ops, true, false);
+    pipeline = vkd3d_meta_get_clear_buffer_uav_pipeline(&list->device->meta_ops, true, false, false);
     workgroup_size = vkd3d_meta_get_clear_buffer_uav_workgroup_size();
 
     if (!vkd3d_create_vk_buffer_view(list->device, scratch.buffer, format, scratch.offset, scratch_buffer_size,
@@ -18055,7 +18057,7 @@ static void d3d12_command_list_encode_sampler_feedback(struct d3d12_command_list
     if (src->desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
         vkd3d_meta_get_sampler_feedback_resolve_pipeline(&list->device->meta_ops,
-                VKD3D_SAMPLER_FEEDBACK_RESOLVE_BUFFER_TO_MIN_MIP, &pipeline_info);
+                VKD3D_SAMPLER_FEEDBACK_RESOLVE_BUFFER_TO_MIN_MIP, &pipeline_info, false);
 
         dst_view_desc.view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
@@ -18119,7 +18121,7 @@ static void d3d12_command_list_encode_sampler_feedback(struct d3d12_command_list
         vkd3d_meta_get_sampler_feedback_resolve_pipeline(&list->device->meta_ops,
                 dst->desc.Format == DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE ?
                         VKD3D_SAMPLER_FEEDBACK_RESOLVE_IMAGE_TO_MIN_MIP :
-                        VKD3D_SAMPLER_FEEDBACK_RESOLVE_IMAGE_TO_MIP_USED, &pipeline_info);
+                        VKD3D_SAMPLER_FEEDBACK_RESOLVE_IMAGE_TO_MIP_USED, &pipeline_info, false);
 
         memset(&src_image_view_desc, 0, sizeof(src_image_view_desc));
         src_image_view_desc.image = src->res.vk_image;
@@ -18413,7 +18415,7 @@ static void d3d12_command_list_decode_sampler_feedback(struct d3d12_command_list
         vk_image_barrier[0].subresourceRange.levelCount = src_view_desc.miplevel_count;
 
         vkd3d_meta_get_sampler_feedback_resolve_pipeline(&list->device->meta_ops,
-                VKD3D_SAMPLER_FEEDBACK_RESOLVE_MIN_MIP_TO_BUFFER, &pipeline_info);
+                VKD3D_SAMPLER_FEEDBACK_RESOLVE_MIN_MIP_TO_BUFFER, &pipeline_info, false);
 
         src_view_desc.view_type = VK_IMAGE_VIEW_TYPE_2D;
 
@@ -18501,7 +18503,7 @@ static void d3d12_command_list_decode_sampler_feedback(struct d3d12_command_list
         vkd3d_meta_get_sampler_feedback_resolve_pipeline(&list->device->meta_ops,
                 src->desc.Format == DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE ?
                         VKD3D_SAMPLER_FEEDBACK_RESOLVE_MIN_MIP_TO_IMAGE :
-                        VKD3D_SAMPLER_FEEDBACK_RESOLVE_MIP_USED_TO_IMAGE, &pipeline_info);
+                        VKD3D_SAMPLER_FEEDBACK_RESOLVE_MIP_USED_TO_IMAGE, &pipeline_info, false);
 
         memset(&dst_image_view_desc, 0, sizeof(dst_image_view_desc));
         dst_image_view_desc.image = dst->res.vk_image;
