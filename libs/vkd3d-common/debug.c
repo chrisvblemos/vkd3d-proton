@@ -103,7 +103,7 @@ static void vkd3d_dbg_init_once(void)
         vkd3d_dbg_buffer.size = strtoul(vkd3d_debug, NULL, 0);
         if (!vkd3d_dbg_buffer.size)
             vkd3d_dbg_buffer.size = 64 * 1024;
-        fprintf(stderr, "Using VKD3D_LOG_BUFFERED with %zu byte chunks.\n", vkd3d_dbg_buffer.size);
+        fprintf(stderr, "Using VKD3D_LOG_BUFFERED with %"PRIuPTR" byte chunks.\n", vkd3d_dbg_buffer.size);
         vkd3d_dbg_buffer.buffer = malloc(vkd3d_dbg_buffer.size);
     }
 

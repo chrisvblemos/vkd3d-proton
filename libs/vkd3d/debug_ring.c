@@ -375,7 +375,7 @@ HRESULT vkd3d_shader_debug_ring_init(struct vkd3d_shader_debug_ring *ring,
     ring->ring_size = (size_t)1 << strtoul(env, NULL, 0);
     ring->control_block_size = 4096;
 
-    INFO("Enabling shader debug ring of size: %zu.\n", ring->ring_size);
+    INFO("Enabling shader debug ring of size: %"PRIuPTR".\n", ring->ring_size);
 
     memset(&heap_properties, 0, sizeof(heap_properties));
     heap_properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;

@@ -203,7 +203,7 @@ int vkd3d_shader_compile_dxbc(const struct vkd3d_shader_code *dxbc,
     bool is_dxil;
     int ret;
 
-    TRACE("dxbc {%p, %zu}, spirv %p, compiler_options %#x, shader_interface_info %p, compile_args %p.\n",
+    TRACE("dxbc {%p, %"PRIuPTR"}, spirv %p, compiler_options %#x, shader_interface_info %p, compile_args %p.\n",
             dxbc->code, dxbc->size, spirv, compiler_options, shader_interface_info, compile_args);
 
     if ((ret = vkd3d_shader_validate_compile_args(compile_args)) < 0)
@@ -308,7 +308,7 @@ void vkd3d_shader_free_root_signature(struct vkd3d_versioned_root_signature_desc
 int vkd3d_shader_parse_input_signature(const struct vkd3d_shader_code *dxbc,
         struct vkd3d_shader_signature *signature)
 {
-    TRACE("dxbc {%p, %zu}, signature %p.\n", dxbc->code, dxbc->size, signature);
+    TRACE("dxbc {%p, %"PRIuPTR"}, signature %p.\n", dxbc->code, dxbc->size, signature);
 
     return shader_parse_input_signature(dxbc->code, dxbc->size, signature);
 }
@@ -316,7 +316,7 @@ int vkd3d_shader_parse_input_signature(const struct vkd3d_shader_code *dxbc,
 int vkd3d_shader_parse_output_signature(const struct vkd3d_shader_code *dxbc,
         struct vkd3d_shader_signature *signature)
 {
-    TRACE("dxbc {%p, %zu}, signature %p.\n", dxbc->code, dxbc->size, signature);
+    TRACE("dxbc {%p, %"PRIuPTR"}, signature %p.\n", dxbc->code, dxbc->size, signature);
 
     return shader_parse_output_signature(dxbc->code, dxbc->size, signature);
 }
@@ -324,7 +324,7 @@ int vkd3d_shader_parse_output_signature(const struct vkd3d_shader_code *dxbc,
 int vkd3d_shader_parse_patch_constant_signature(const struct vkd3d_shader_code *dxbc,
         struct vkd3d_shader_signature *signature)
 {
-    TRACE("dxbc {%p, %zu}, signature %p.\n", dxbc->code, dxbc->size, signature);
+    TRACE("dxbc {%p, %"PRIuPTR"}, signature %p.\n", dxbc->code, dxbc->size, signature);
 
     return shader_parse_patch_constant_signature(dxbc->code, dxbc->size, signature);
 }

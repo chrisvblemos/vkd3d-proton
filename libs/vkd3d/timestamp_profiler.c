@@ -692,7 +692,7 @@ static void vkd3d_timestamp_profiler_wait_available_submit_locked(struct vkd3d_t
     if (timeline == 0)
         return;
 
-    TS_TRACE("Waiting for timeline %"PRIu64", num timestamps %zu\n", timeline, num_timestamps);
+    TS_TRACE("Waiting for timeline %"PRIu64", num timestamps %"PRIuPTR"\n", timeline, num_timestamps);
     while (profiler->read_progress < timeline &&
             (profiler->write_progress - profiler->read_progress + num_timestamps) <= profiler->ready_ring_size)
     {
@@ -708,7 +708,7 @@ void vkd3d_timestamp_profiler_submit_command_list(struct vkd3d_timestamp_profile
     if (!profiler)
         return;
 
-    TS_TRACE("Submitting list %p, %zu timestamps\n", list, list->timestamp_profiler.work_count);
+    TS_TRACE("Submitting list %p, %"PRIuPTR" timestamps\n", list, list->timestamp_profiler.work_count);
     for (i = 0; i < list->timestamp_profiler.work_count; i++)
         vkd3d_timestamp_profiler_incref_timestamp_index(profiler, list->timestamp_profiler.work[i].timestamp_index);
 

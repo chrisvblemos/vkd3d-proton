@@ -267,7 +267,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_vkd3d_ext_GetCudaTextureObject(d3d
     struct d3d12_desc_split srv_desc;
     struct d3d12_device *device;
 
-    TRACE("iface %p, srv_handle %zu, sampler_handle %zu, cuda_texture_handle %p.\n",
+    TRACE("iface %p, srv_handle %"PRIuPTR", sampler_handle %"PRIuPTR", cuda_texture_handle %p.\n",
             iface, (size_t)srv_handle.ptr, (size_t)sampler_handle.ptr, cuda_texture_handle);
 
     if (!cuda_texture_handle)
@@ -298,7 +298,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_vkd3d_ext_GetCudaSurfaceObject(d3d
     struct d3d12_desc_split uav_desc;
     struct d3d12_device *device;
 
-    TRACE("iface %p, uav_handle %zu, cuda_surface_handle %p.\n", iface, (size_t)uav_handle.ptr, cuda_surface_handle);
+    TRACE("iface %p, uav_handle %"PRIuPTR", cuda_surface_handle %p.\n", iface, (size_t)uav_handle.ptr, cuda_surface_handle);
     if (!cuda_surface_handle)
        return E_INVALIDARG;
 
@@ -395,7 +395,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_vkd3d_ext_GetCudaMergedTextureSamp
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
     struct d3d12_desc_split sampler_desc, texture_desc;
 
-    TRACE("iface %p, tex_desc %zu, smp_desc %zu.\n",
+    TRACE("iface %p, tex_desc %"PRIuPTR", smp_desc %"PRIuPTR".\n",
             iface, (size_t)params->texDesc, (size_t)params->smpDesc);
 
     if (!device->vk_info.supports_cubin_64bit || !vk_procs->vkGetImageViewHandle64NVX)
@@ -437,7 +437,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_vkd3d_ext_GetCudaIndependentDescri
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
     struct d3d12_desc_split desc;
 
-    TRACE("iface %p, desc %zu, type %d.\n",
+    TRACE("iface %p, desc %"PRIuPTR", type %d.\n",
             iface, (size_t)params->desc, params->type);
 
     if (!device->vk_info.supports_cubin_64bit || !vk_procs->vkGetImageViewHandle64NVX)
