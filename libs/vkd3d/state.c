@@ -7951,6 +7951,7 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
     uint32_t minimum_buffer_offset, minimum_metadata_offset;
     uint32_t minimum_unified_buffer_descriptor_size_log2;
     bool unified_buffer_descriptor = false;
+    bool allow_unified = true;
 
     if (!device->device_info.descriptor_heap_features.descriptorHeap)
         return E_NOTIMPL;
@@ -8017,9 +8018,19 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
     /* Make sure the padded size stays aligned to POT. */
     minimum_unified_buffer_descriptor_size_log2 = vkd3d_log2i_ceil(minimum_unified_buffer_descriptor_size_log2);
 
+    if (VKD3D_CONFIG_FLAG_IS_SET(AVOID_SLICED_IMAGE_BUFFER_ALIASING))
+    {
+        /* Large sampler descriptor on RADV just means the fmask which is almost always a null descriptor,
+         * so the aliasing risk is minimal. Use storage image as the sentinel since it's the most compact form
+         * on the relevant GPUs. */
+        if (bindless_state->heap.sampled_image_size == bindless_state->heap.storage_image_size &&
+            (1u << minimum_unified_buffer_descriptor_size_log2) < 2 * bindless_state->heap.storage_image_size)
+            allow_unified = false;
+    }
+
     /* If we cannot place two buffers size by side, we may need to pad the descriptor.
      * Not all implementations support this. More recent Intel GPUs will be able to support this. */
-    if ((1u << minimum_unified_buffer_descriptor_size_log2) * ((1 << 20) - (1 << 15)) <=
+    if (allow_unified && (1u << minimum_unified_buffer_descriptor_size_log2) * ((1 << 20) - (1 << 15)) <=
         device->device_info.descriptor_heap_properties.maxResourceHeapSize)
     {
         bindless_state->cbv_srv_uav_size_log2 = minimum_unified_buffer_descriptor_size_log2;
@@ -8094,7 +8105,7 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
         return E_NOTIMPL;
     }
 
-    if (bindless_state->packed_raw_buffer_offset == 0)
+    if (!VKD3D_CONFIG_FLAG_IS_SET(AVOID_SLICED_IMAGE_BUFFER_ALIASING) && bindless_state->packed_raw_buffer_offset == 0)
     {
         /* For this path to work, we need to know that the hardware and driver can alias texel buffer and SSBO.
          * TODO: We may need to find some other way on NVK. */
