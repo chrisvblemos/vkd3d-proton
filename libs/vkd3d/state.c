@@ -8033,7 +8033,8 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
     if (allow_unified && (1u << minimum_unified_buffer_descriptor_size_log2) * ((1 << 20) - (1 << 15)) <=
         device->device_info.descriptor_heap_properties.maxResourceHeapSize)
     {
-        bindless_state->cbv_srv_uav_size_log2 = minimum_unified_buffer_descriptor_size_log2;
+        bindless_state->cbv_srv_uav_size_log2 =
+            max(minimum_unified_buffer_descriptor_size_log2, bindless_state->cbv_srv_uav_size_log2);
         unified_buffer_descriptor = true;
     }
 
