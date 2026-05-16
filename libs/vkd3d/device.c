@@ -745,7 +745,7 @@ static const struct vkd3d_instance_application_meta application_override[] = {
      * Completely broken case where it writes a texture descriptor and reads it as a buffer.
      * With 32b embedded model on RDNA3/4, this causes a GPU hang.
      * What works better is to co-site all descriptors, removing the support for texel/ssbo aliasing. */
-    { VKD3D_STRING_COMPARE_EXACT, "forzahorizon6.exe", VKD3D_CONFIG_FLAG_STATIC(AVOID_SLICED_IMAGE_BUFFER_ALIASING) },
+    { VKD3D_STRING_COMPARE_EXACT, "forzahorizon6.exe", VKD3D_CONFIG_FLAG_INIT_STATIC(.AVOID_SLICED_IMAGE_BUFFER_ALIASING = 1, .DESCRIPTOR_HEAP = 1) },
     { VKD3D_STRING_COMPARE_NEVER, NULL },
 };
 
