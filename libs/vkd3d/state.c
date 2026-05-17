@@ -7951,7 +7951,7 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
     uint32_t minimum_buffer_offset, minimum_metadata_offset;
     uint32_t minimum_unified_buffer_descriptor_size_log2;
     bool unified_buffer_descriptor = false;
-    bool allow_unified = true;
+    bool use_unified_buffer_descriptor = true;
 
     if (!device->device_info.descriptor_heap_features.descriptorHeap)
         return E_NOTIMPL;
@@ -8020,17 +8020,44 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
 
     if (VKD3D_CONFIG_FLAG_IS_SET(AVOID_SLICED_IMAGE_BUFFER_ALIASING))
     {
-        /* Large sampler descriptor on RADV just means the fmask which is almost always a null descriptor,
-         * so the aliasing risk is minimal. Use storage image as the sentinel since it's the most compact form
-         * on the relevant GPUs. */
+        /* When image and buffer descriptors share memory (unified path), the buffer half
+         * starts at an offset that can alias with a sliced image descriptor on some GPUs
+         * (e.g. RDNA3/4 with 32b embedded model). This is a hazard when an application
+         * writes an image descriptor and reads it back as a buffer (as FH6 does).
+         *
+         * On RDNA3/4 with 32b embedded model, image descriptors are 32 bytes and buffer
+         * descriptors are 16 bytes. With co-siting (both at offset 0 in a 32-byte slot),
+         * writing a 32-byte image descriptor and reading it as a 16-byte buffer descriptor
+         * causes the GPU to reinterpret image bytes as a buffer VA -> GPUVM fault.
+         *
+         * Pad the descriptor slot to 64 bytes, placing the image descriptor in the first
+         * 32 bytes (offset 0) and the buffer descriptor in the second 32 bytes (offset 32).
+         * When the game writes an image and reads as buffer, it reads the buffer half which
+         * contains either a valid buffer descriptor or zeros (null). */
         if (bindless_state->heap.sampled_image_size == bindless_state->heap.storage_image_size &&
             (1u << minimum_unified_buffer_descriptor_size_log2) < 2 * bindless_state->heap.storage_image_size)
-            allow_unified = false;
+        {
+            uint32_t padded_size = 2 * bindless_state->heap.storage_image_size;
+            uint32_t buffer_offset = bindless_state->heap.storage_image_size;
+
+            if (padded_size * ((1 << 20) - (1 << 15)) <=
+                device->device_info.descriptor_heap_properties.maxResourceHeapSize)
+            {
+                bindless_state->cbv_srv_uav_size_log2 = vkd3d_log2i_ceil(padded_size);
+                bindless_state->packed_raw_buffer_offset = buffer_offset;
+                minimum_buffer_offset = buffer_offset;
+                use_unified_buffer_descriptor = false;
+            }
+            else
+            {
+                use_unified_buffer_descriptor = false;
+            }
+        }
     }
 
-    /* If we cannot place two buffers size by side, we may need to pad the descriptor.
+    /* If we cannot place two buffers side by side, we may need to pad the descriptor.
      * Not all implementations support this. More recent Intel GPUs will be able to support this. */
-    if (allow_unified && (1u << minimum_unified_buffer_descriptor_size_log2) * ((1 << 20) - (1 << 15)) <=
+    if (use_unified_buffer_descriptor && (1u << minimum_unified_buffer_descriptor_size_log2) * ((1 << 20) - (1 << 15)) <=
         device->device_info.descriptor_heap_properties.maxResourceHeapSize)
     {
         bindless_state->cbv_srv_uav_size_log2 =

@@ -744,8 +744,12 @@ static const struct vkd3d_instance_application_meta application_override[] = {
     /* Forza Horizon 6 (2483190).
      * Completely broken case where it writes a texture descriptor and reads it as a buffer.
      * With 32b embedded model on RDNA3/4, this causes a GPU hang.
-     * What works better is to co-site all descriptors, removing the support for texel/ssbo aliasing. */
-    { VKD3D_STRING_COMPARE_EXACT, "forzahorizon6.exe", VKD3D_CONFIG_FLAG_INIT_STATIC(.AVOID_SLICED_IMAGE_BUFFER_ALIASING = 1, .DESCRIPTOR_HEAP = 1) },
+     * What works better is to co-site all descriptors, removing the support for texel/ssbo aliasing.
+     * The game also frees resources while the GPU still references them (use-after-free),
+     * causing GPUVM permission faults. Defer destruction to keep resources alive. */
+    { VKD3D_STRING_COMPARE_EXACT, "forzahorizon6.exe",
+        VKD3D_CONFIG_FLAG_INIT_STATIC(.AVOID_SLICED_IMAGE_BUFFER_ALIASING = 1,
+                .DESCRIPTOR_HEAP = 1, .DEFER_RESOURCE_DESTRUCTION = 1) },
     { VKD3D_STRING_COMPARE_NEVER, NULL },
 };
 
@@ -9546,9 +9550,6 @@ uint32_t d3d12_device_get_max_descriptor_heap_size(struct d3d12_device *device, 
                     device->device_info.descriptor_heap_properties.maxSamplerHeapSize -
                     device->device_info.descriptor_heap_properties.minSamplerHeapReservedRangeWithEmbedded;
 
-                /* For padding scenarios, we rely on allocating 2048 samplers for every heap
-                 * and clamp to 2047 since we cannot sneak in a proper redzone descriptor on NV. */
-
                 /* Don't report ridiculously large numbers here for safety. Limit the number of descriptors. */
                 uint32_t count = min(1000000, useable_size >> device->bindless_state.sampler_size_log2);
                 assert(count >= VKD3D_MIN_SAMPLER_DESCRIPTOR_COUNT);
@@ -9556,6 +9557,9 @@ uint32_t d3d12_device_get_max_descriptor_heap_size(struct d3d12_device *device, 
             }
             else
             {
+                /* When padding is required, descriptor heaps are always padded to
+                 * D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE (2048) descriptors.
+                 * Report the minimum to match, since there is no room for a redzone. */
                 return VKD3D_MIN_SAMPLER_DESCRIPTOR_COUNT;
             }
 

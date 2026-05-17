@@ -1683,6 +1683,16 @@ bool d3d12_descriptor_heap_require_padding_descriptors(struct d3d12_device *devi
 void d3d12_descriptor_heap_inc_ref(struct d3d12_descriptor_heap *heap);
 void d3d12_descriptor_heap_dec_ref(struct d3d12_descriptor_heap *heap);
 
+static inline uint32_t d3d12_descriptor_heap_pad_sampler_count(struct d3d12_device *device,
+        uint32_t descriptor_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
+{
+    if (type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER &&
+            (flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE) &&
+            d3d12_descriptor_heap_require_padding_descriptors(device))
+        return max(descriptor_count, D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE);
+    return descriptor_count;
+}
+
 uint32_t d3d12_descriptor_heap_allocate_meta_index(struct d3d12_descriptor_heap *heap);
 void d3d12_descriptor_heap_free_meta_index(struct d3d12_descriptor_heap *heap, uint32_t index);
 uint32_t d3d12_device_find_shader_visible_descriptor_heap_offset(
