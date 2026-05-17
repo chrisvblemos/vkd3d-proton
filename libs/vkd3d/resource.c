@@ -7068,6 +7068,18 @@ static void vkd3d_create_texture_srv_heap(vkd3d_cpu_descriptor_va_t desc_va,
     desc_range.address = stack_payload;
     desc_range.size = device->bindless_state.heap.sampled_image_size;
     VK_CALL(vkWriteResourceDescriptorsEXT(device->vk_device, 1, &desc_info, &desc_range));
+
+    if (device->bindless_state.packed_raw_buffer_offset != 0)
+    {
+        memset(&desc_info, 0, sizeof(desc_info));
+        desc_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
+        desc_info.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        desc_info.data.pAddressRange = NULL;
+        desc_range.address = stack_payload + device->bindless_state.packed_raw_buffer_offset;
+        desc_range.size = device->device_info.descriptor_heap_properties.bufferDescriptorSize;
+        VK_CALL(vkWriteResourceDescriptorsEXT(device->vk_device, 1, &desc_info, &desc_range));
+    }
+
     memcpy(d.payload, stack_payload, device->bindless_state.cbv_srv_uav_size);
 }
 
@@ -7876,6 +7888,18 @@ static void vkd3d_create_texture_uav_heap(vkd3d_cpu_descriptor_va_t desc_va,
     desc_range.address = stack_payload;
     desc_range.size = device->bindless_state.heap.storage_image_size;
     VK_CALL(vkWriteResourceDescriptorsEXT(device->vk_device, 1, &desc_info, &desc_range));
+
+    if (device->bindless_state.packed_raw_buffer_offset != 0)
+    {
+        memset(&desc_info, 0, sizeof(desc_info));
+        desc_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
+        desc_info.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        desc_info.data.pAddressRange = NULL;
+        desc_range.address = stack_payload + device->bindless_state.packed_raw_buffer_offset;
+        desc_range.size = device->device_info.descriptor_heap_properties.bufferDescriptorSize;
+        VK_CALL(vkWriteResourceDescriptorsEXT(device->vk_device, 1, &desc_info, &desc_range));
+    }
+
     memcpy(d.payload, stack_payload, device->bindless_state.cbv_srv_uav_size);
 }
 
