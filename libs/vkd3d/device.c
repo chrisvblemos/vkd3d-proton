@@ -744,12 +744,11 @@ static const struct vkd3d_instance_application_meta application_override[] = {
     /* Forza Horizon 6 (2483190).
      * Completely broken case where it writes a texture descriptor and reads it as a buffer.
      * With 32b embedded model on RDNA3/4, this causes a GPU hang.
-     * What works better is to co-site all descriptors, removing the support for texel/ssbo aliasing.
-     * The game also frees resources while the GPU still references them (use-after-free),
-     * causing GPUVM permission faults. Defer destruction to keep resources alive. */
+     * Pad descriptors to 64 bytes to separate image and buffer descriptors,
+     * and write proper null SSBO descriptors in the buffer half of texture slots. */
     { VKD3D_STRING_COMPARE_EXACT, "forzahorizon6.exe",
         VKD3D_CONFIG_FLAG_INIT_STATIC(.AVOID_SLICED_IMAGE_BUFFER_ALIASING = 1,
-                .DESCRIPTOR_HEAP = 1, .DEFER_RESOURCE_DESTRUCTION = 1) },
+                .DESCRIPTOR_HEAP = 1) },
     { VKD3D_STRING_COMPARE_NEVER, NULL },
 };
 
