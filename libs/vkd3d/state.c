@@ -8018,7 +8018,8 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
     /* Make sure the padded size stays aligned to POT. */
     minimum_unified_buffer_descriptor_size_log2 = vkd3d_log2i_ceil(minimum_unified_buffer_descriptor_size_log2);
 
-    if (VKD3D_CONFIG_FLAG_IS_SET(AVOID_SLICED_IMAGE_BUFFER_ALIASING))
+    if (VKD3D_CONFIG_FLAG_IS_SET(AVOID_SLICED_IMAGE_BUFFER_ALIASING) &&
+            bindless_state->heap.storage_image_size < 64)
     {
         /* When image and buffer descriptors share memory (unified path), the buffer half
          * starts at an offset that can alias with a sliced image descriptor on some GPUs
@@ -8033,7 +8034,12 @@ static HRESULT vkd3d_bindless_state_init_heap(struct vkd3d_bindless_state *bindl
          * Pad the descriptor slot to 64 bytes, placing the image descriptor in the first
          * 32 bytes (offset 0) and the buffer descriptor in the second 32 bytes (offset 32).
          * When the game writes an image and reads as buffer, it reads the buffer half which
-         * contains either a valid buffer descriptor or zeros (null). */
+         * contains either a valid buffer descriptor or zeros (null).
+         *
+         * Only activate when the driver reports < 64 byte image descriptors. When the driver
+         * provides 64 byte descriptors (e.g. RADV with radv_force_64_byte_sampled_image),
+         * the unified_buffer_descriptor path handles everything correctly without this hack.
+         * Without this guard, we'd create 128 byte descriptors (2 * 64), which is wasteful. */
         if (bindless_state->heap.sampled_image_size == bindless_state->heap.storage_image_size &&
             (1u << minimum_unified_buffer_descriptor_size_log2) < 2 * bindless_state->heap.storage_image_size)
         {
