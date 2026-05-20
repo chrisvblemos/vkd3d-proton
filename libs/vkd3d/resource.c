@@ -9150,6 +9150,30 @@ static HRESULT d3d12_descriptor_heap_create_descriptor_heap(struct d3d12_descrip
             VK_CALL(vkDestroyBuffer(device->vk_device, descriptor_heap->descriptor_buffer.vk_buffer, NULL));
             return hresult_from_vk_result(vr);
         }
+
+        if (descriptor_heap->desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+        {
+            VkDeviceSize null_offset = device->bindless_state.heap.redzone_size +
+                    descriptor_count * device->bindless_state.cbv_srv_uav_size;
+            uint8_t *null_ptr = descriptor_heap->descriptor_buffer.host_allocation + null_offset;
+
+            memset(null_ptr, 0, device->bindless_state.cbv_srv_uav_size);
+
+            if (device->bindless_state.packed_raw_buffer_offset)
+            {
+                VkResourceDescriptorInfoEXT desc_info;
+                VkHostAddressRangeEXT desc_range;
+
+                memset(&desc_info, 0, sizeof(desc_info));
+                desc_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
+                desc_info.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                desc_info.data.pAddressRange = NULL;
+
+                desc_range.address = null_ptr + device->bindless_state.packed_raw_buffer_offset;
+                desc_range.size = device->device_info.descriptor_heap_properties.bufferDescriptorSize;
+                VK_CALL(vkWriteResourceDescriptorsEXT(device->vk_device, 1, &desc_info, &desc_range));
+            }
+        }
     }
     else
     {
