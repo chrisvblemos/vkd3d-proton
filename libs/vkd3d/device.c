@@ -745,10 +745,13 @@ static const struct vkd3d_instance_application_meta application_override[] = {
      * Completely broken case where it writes a texture descriptor and reads it as a buffer.
      * With 32b embedded model on RDNA3/4, this causes a GPU hang.
      * Pad descriptors to 64 bytes to separate image and buffer descriptors,
-     * and write proper null SSBO descriptors in the buffer half of texture slots. */
+     * and write proper null SSBO descriptors in the buffer half of texture slots.
+     * NOTE: DESCRIPTOR_HEAP is intentionally NOT enabled here. The descriptor heap
+     * path for RT local root signatures has a fundamental issue where heap lowering
+     * bypass (needed for UAV counter entries) produces SPIR-V that doesn't match
+     * the mapping info setup. The legacy bindless path works correctly for RT. */
     { VKD3D_STRING_COMPARE_EXACT, "forzahorizon6.exe",
-        VKD3D_CONFIG_FLAG_INIT_STATIC(.AVOID_SLICED_IMAGE_BUFFER_ALIASING = 1,
-                .DESCRIPTOR_HEAP = 1) },
+        VKD3D_CONFIG_FLAG_STATIC(AVOID_SLICED_IMAGE_BUFFER_ALIASING) },
     { VKD3D_STRING_COMPARE_NEVER, NULL },
 };
 
@@ -853,9 +856,14 @@ static const struct vkd3d_shader_quirk_info heap_robustness_quirks = {
 
 static const struct vkd3d_shader_quirk_info forza6_quirks = {
     NULL, 0,
-    /* Tons of OOB access in RT, even for sampler heap.
-     * Also, lots of missed nonuniformEXT in RT, so force that ... */
-    VKD3D_SHADER_QUIRK_DESCRIPTOR_HEAP_ROBUSTNESS | VKD3D_SHADER_QUIRK_FORCE_NONUNIFORM_RT,
+    /* Lots of missed nonuniformEXT in RT, so force that.
+     * NOTE: DESCRIPTOR_HEAP_ROBUSTNESS is intentionally NOT set here.
+     * In the legacy path, the robustness check creates an introspection
+     * buffer from the RTAS SSBO whose size is much smaller than the
+     * actual descriptor heap, causing valid descriptor indices to be
+     * clamped incorrectly. Without DESCRIPTOR_HEAP enabled, the robustness
+     * is not needed as OOB is handled by the driver's descriptor indexing. */
+    VKD3D_SHADER_QUIRK_FORCE_NONUNIFORM_RT,
 };
 
 static const struct vkd3d_shader_quirk_hash ac_mirage_hashes[] = {
